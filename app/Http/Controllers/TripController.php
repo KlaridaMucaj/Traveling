@@ -14,135 +14,145 @@ class TripController extends Controller
     {
         $priceByKm = 0;
         $priceByTime = 0;
-        $string = "Your price in km is:".$priceByKm."end by time is:".$priceByTime;
-        $distance=$request->input('distance');
-        $startTime = Carbon::parse(str_replace('T',' ',$request->input('startDate')))->format('Y-m-d h:i A');
-        $endTime = Carbon::parse(str_replace('T',' ',$request->input('endDate')))->format('Y-m-d h:i A');
+        $string = "Your price in km is:" . $priceByKm . "end by time is:" . $priceByTime;
+        $distance = $request->input('distance');
+        $startTime = Carbon::parse(str_replace('T', ' ', $request->input('startDate')))->format('Y-m-d h:i A');
+        $endTime = Carbon::parse(str_replace('T', ' ', $request->input('endDate')))->format('Y-m-d h:i A');
 //        $startTime = Carbon::parse( Carbon::createFromFormat('Y-m-d\TH:i',$request->startDate));
 //        $endTime =  Carbon::parse(Carbon::createFromFormat('Y-m-d\TH:i',$request->endDate));
         //$endTime = Carbon::parse($request->input('endDate'))->format('Y:m:d');
 
         if ($request->get('company') == '1') {
 
-        if ($distance > 100) {
-            $inKm = 100;
-            $outKm = $distance - 100;
-
-        } else {
-            $inKm = $distance;
-            $outKm = 0;
-        }
-        $priceByKm = $inKm * 5 + $outKm * 3;
-
-        $hours = 0;
-        $start = Carbon::parse($startTime);
-        $end = Carbon::parse($endTime);
-        $diffInHours = $start->diffInHours($end);
-        $hours += $diffInHours;
-
-        $priceByTime = $hours * 4;
-
-    }else if ($request->get('company') == '2') {
-
-        $priceByKm = $distance * 3;
-        $pricePerDay = 0;
-        $hoursIn = 0;
-        $hoursOut = 0;
-
-
-        $start = Carbon::parse($startTime);
-        $end = Carbon::parse($endTime);
-        $totalHours = 0;
-
-
-        for ($d = $start; $d < $end; $d->addHour()) {
-            $totalHours++;
-
-            $s = explode(" ", $d);
-            $h1 = Carbon::parse(Carbon::createFromFormat('Y-m-d H:i A', $s[0] . ' ' . '00:00 AM'));
-            $h2 = Carbon::parse(Carbon::createFromFormat('Y-m-d H:i A', $s[0] . ' ' . '06:00 AM'));
-
-            if ($h1 <= $d && $d < $h2) {
-                $hoursIn++;
+            if ($distance > 100) {
+                $inKm = 100;
+                $outKm = $distance - 100;
 
             } else {
-                $hoursOut++;
+                $inKm = $distance;
+                $outKm = 0;
             }
-        }
-        //dd($hoursIn,$hoursOut);
+            $priceByKm = $inKm * 5 + $outKm * 3;
 
-        $priceByTime = $hoursIn * 12 + $hoursOut * 7;
+            $hours = 0;
+            $start = Carbon::parse($startTime);
+            $end = Carbon::parse($endTime);
+//            $diffInHours = $start->diffInHours($end);
+//                    $hours += $diffInHours;
+            $diffInSeccnds = $start->diffInSeconds($end);
+            $hours += $diffInSeccnds / 3600;
+
+            $priceByTime = $hours * 4;
+
+        } else if ($request->get('company') == '2') {
+
+            $priceByKm = $distance * 3;
+            $pricePerDay = 0;
+            $hoursIn = 0;
+            $hoursOut = 0;
+            $secIn = 0;
+            $secOut = 0;
+
+            $start = Carbon::parse($startTime);
+            $end = Carbon::parse($endTime);
+            $totalHours = 0;
 
 
-        if ($priceByTime > 70 && $totalHours >= 24) {
-            $priceByTime = $priceByTime - (6 * 12 + 18 * 7) + 70;
+            for ($d = $start; $d < $end; $d->addSecond()) {
 
-        } else if ($priceByTime > 70 && $totalHours < 24) {
-            $priceByTime = 70;
+                $s = explode(" ", $d);
+                $h1 = Carbon::parse(Carbon::createFromFormat('Y-m-d H:i A', $s[0] . ' ' . '00:00 AM'));
+                $h2 = Carbon::parse(Carbon::createFromFormat('Y-m-d H:i A', $s[0] . ' ' . '06:00 AM'));
 
-        } else {
+                if ($h1 <= $d && $d < $h2) {
+                    $secIn++;
+
+                } else {
+                    $secOut++;
+                }
+            }
+            $hoursIn = $secIn / 3600;
+            $hoursOut = $secOut / 3600;
+
+            $totalHours = $hoursIn + $hoursOut;
             $priceByTime = $hoursIn * 12 + $hoursOut * 7;
-        }
-        //dd($priceByTime);
+
+
+            if ($priceByTime > 70 && $totalHours >= 24) {
+                $priceByTime = $priceByTime - (6 * 12 + 18 * 7) + 70;
+
+            } else if ($priceByTime > 70 && $totalHours < 24) {
+                $priceByTime = 70;
+
+            } else {
+                $priceByTime = $hoursIn * 12 + $hoursOut * 7;
+            }
+            $priceByTime = round($priceByTime, 3);
 
         } else if ($request->get('company') == '3') {
 
-        if ($distance > 100) {
-            $inKm = 50;
-            $outKm = 50;
-            $outKm100 = $distance - 100;
+            if ($distance > 100) {
+                $inKm = 50;
+                $outKm = 50;
+                $outKm100 = $distance - 100;
 
-        } else if ($distance > 50) {
-            $inKm = 50;
-            $outKm = $distance - 50;
-            $outKm100 = 0;
-
-        } else {
-            $inKm = $distance;
-            $outKm = 0;
-            $outKm100 = 0;
-        }
-        $priceByKm = $inKm * 7 + $outKm * 5 + $outKm100 * 3;
-
-        $start = Carbon::parse($startTime);
-        $end = Carbon::parse($endTime);
-        $hours0_7 = 0;
-        $hours7_9 = 0;
-        $hours16_18 = 0;
-        $hoursOut = 0;
-
-
-        for ($d = $start; $d < $end; $d->addHour()) {
-
-            $s = explode(" ", $d);
-            $h1 = Carbon::parse(Carbon::createFromFormat('Y-m-d H:i A', $s[0] . ' ' . '00:00 AM'));
-            $h2 = Carbon::parse(Carbon::createFromFormat('Y-m-d H:i A', $s[0] . ' ' . '07:00 AM'));
-            $h3 = Carbon::parse(Carbon::createFromFormat('Y-m-d H:i A', $s[0] . ' ' . '09:00 AM'));
-            $h4 = Carbon::parse(Carbon::createFromFormat('Y-m-d H:i A', $s[0] . ' ' . '04:00 PM'));
-            $h5 = Carbon::parse(Carbon::createFromFormat('Y-m-d H:i A', $s[0] . ' ' . '06:30 PM'));
-
-            if ($h1 <= $d && $d < $h2) {
-                $hours0_7++;
-
-            } else if ($h2 <= $d && $d < $h3) {
-                $hours7_9++;
-
-            } else if ($h4 <= $d && $d < $h5) {
-                $hours16_18++;
+            } else if ($distance > 50) {
+                $inKm = 50;
+                $outKm = $distance - 50;
+                $outKm100 = 0;
 
             } else {
-                $hoursOut++;
+                $inKm = $distance;
+                $outKm = 0;
+                $outKm100 = 0;
             }
-        }
-        // out -- 6, 5.5, 7, 5.5, 7,  5.5, 6 = 42,5
-        // 07 -- 7, 7, 7 = 21
-        // 79 -- 2, 2, 2 = 6
-        // 1618 -- 2.5, 2.5, 2.5 = 7.5
-        $priceByTime = $hours0_7 * 10 + 8 * ($hours16_18 + $hours7_9) + $hoursOut * 5;
-         //dd($priceByTime);
-               }
+            $priceByKm = $inKm * 7 + $outKm * 5 + $outKm100 * 3;
 
-        return view('trip',compact('priceByKm','priceByTime'));
+            $start = Carbon::parse($startTime);
+            $end = Carbon::parse($endTime);
+            $sec0_7 = 0;
+            $sec7_9 = 0;
+            $sec16_18 = 0;
+            $secOut = 0;
+
+
+            for ($d = $start; $d < $end; $d->addSecond()) {
+
+                $s = explode(" ", $d);
+                $h1 = Carbon::parse(Carbon::createFromFormat('Y-m-d H:i A', $s[0] . ' ' . '00:00 AM'));
+                $h2 = Carbon::parse(Carbon::createFromFormat('Y-m-d H:i A', $s[0] . ' ' . '07:00 AM'));
+                $h3 = Carbon::parse(Carbon::createFromFormat('Y-m-d H:i A', $s[0] . ' ' . '09:00 AM'));
+                $h4 = Carbon::parse(Carbon::createFromFormat('Y-m-d H:i A', $s[0] . ' ' . '04:00 PM'));
+                $h5 = Carbon::parse(Carbon::createFromFormat('Y-m-d H:i A', $s[0] . ' ' . '06:30 PM'));
+
+                if ($h1 <= $d && $d < $h2) {
+                    $sec0_7++;
+
+                } else if ($h2 <= $d && $d < $h3) {
+                    $sec7_9++;
+
+                } else if ($h4 <= $d && $d < $h5) {
+                    $sec16_18++;
+
+                } else {
+                    $secOut++;
+                }
+            }
+            $hours0_7 = $sec0_7 / 3600;
+            $hours7_9 = $sec7_9 / 3600;
+            $hours16_18 = $sec16_18 / 3600;
+            $hoursOut = $secOut / 3600;
+            //dd($hoursOut,$hours0_7,$hours7_9,$hours16_18);
+
+            // out -- 6, 5.5, 7, 5.5, 7,  5.5, 6 = 42,5
+            // 07 -- 7, 7, 7 = 21
+            // 79 -- 2, 2, 2 = 6
+            // 1618 -- 2.5, 2.5, 2.5 = 7.5
+            $priceByTime = $hours0_7 * 10 + 8 * ($hours16_18 + $hours7_9) + $hoursOut * 5;
+            $priceByTime = round($priceByTime, 3);
+        }
+
+        return view('trip', compact('priceByKm', 'priceByTime'));
     }
 
     public function price(Request $request)
